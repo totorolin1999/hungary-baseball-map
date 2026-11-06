@@ -1,0 +1,173 @@
+[
+  {
+    "id": "budapest-red-wolves",
+    "name": "Budapest Red Wolves",
+    "league": "nbi",
+    "tierLabelHU": "NB I Bajnok / Interleague",
+    "tierLabelEN": "NB I Champion / Interleague",
+    "cityHU": "Budapest (18. kerület)",
+    "cityEN": "Budapest (District 18)",
+    "ballparkHU": "Budapest RedWolves Park (Thököly út 11)",
+    "ballparkEN": "Budapest RedWolves Park (Thököly út 11)",
+    "coords": [
+      47.4478,
+      19.1853
+    ],
+    "socials": {
+      "website": "https://redwolves.hu",
+      "facebook": "https://www.facebook.com/BudapestRedWolvesBaseballSE",
+      "instagram": "https://www.instagram.com/budapestredwolves"
+    }
+  },
+  {
+    "id": "obuda-warriors",
+    "name": "Óbuda Warriors",
+    "league": "nbi",
+    "tierLabelHU": "NB I / Utánpótlás Akadémia",
+    "tierLabelEN": "NB I / Youth Academy",
+    "cityHU": "Budapest (3. kerület)",
+    "cityEN": "Budapest (District 3)",
+    "ballparkHU": "Óbudai Baseball Aréna (Aranyos utca 8)",
+    "ballparkEN": "Óbudai Baseball Aréna (Aranyos utca 8)",
+    "coords": [
+      47.5684,
+      19.0495
+    ],
+    "socials": {
+      "website": "https://obudabaseball.hu",
+      "facebook": "https://www.facebook.com/ObudaWarriors",
+      "instagram": "https://www.instagram.com/obudabaseball"
+    }
+  },
+  {
+    "id": "erd-baseball",
+    "name": "Érd Baseball SE",
+    "league": "nbi",
+    "tierLabelHU": "NB I / Euro Interleague",
+    "tierLabelEN": "NB I / Euro Interleague",
+    "cityHU": "Érd",
+    "cityEN": "Érd",
+    "ballparkHU": "Érd Baseball Field (Gát utca)",
+    "ballparkEN": "Érd Baseball Field (Gát utca)",
+    "coords": [
+      47.3486,
+      18.9405
+    ],
+    "socials": {
+      "website": "https://erdbaseball.hu",
+      "facebook": "https://www.facebook.com/erdbaseballse",
+      "instagram": "https://www.instagram.com/erd_baseball_se"
+    }
+  },
+  {
+    "id": "janossomorja-rascals",
+    "name": "Jánossomorja Rascals",
+    "league": "nbi",
+    "tierLabelHU": "NB I Bajnok / Hagyományőrző",
+    "tierLabelEN": "NB I Champion / Traditional",
+    "cityHU": "Jánossomorja",
+    "cityEN": "Jánossomorja",
+    "ballparkHU": "Rascals Field (Dózsa György utca 29)",
+    "ballparkEN": "Rascals Field (Dózsa György utca 29)",
+    "coords": [
+      47.7869,
+      17.1352
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/janossomorjarascals"
+    }
+  },
+  {
+    "id": "szentendre-sleepwalkers",
+    "name": "Szentendre Sleepwalkers",
+    "league": "nbi",
+    "tierLabelHU": "NB I / Utánpótlás Képzés",
+    "tierLabelEN": "NB I / Youth Training",
+    "cityHU": "Szentendre",
+    "cityEN": "Szentendre",
+    "ballparkHU": "Izbégi Baseball Pálya (Szentlászlói út)",
+    "ballparkEN": "Izbég Baseball Field (Szentlászlói út)",
+    "coords": [
+      47.6897,
+      19.048
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/szentendresleepwalkers",
+      "instagram": "https://www.instagram.com/sleepwalkers_baseball"
+    }
+  },
+  {
+    "id": "budapest-rebels",
+    "name": "Budapest Rebels",
+    "league": "nbi",
+    "tierLabelHU": "NB I Baseball & Softball",
+    "tierLabelEN": "NB I Baseball & Softball",
+    "cityHU": "Budapest",
+    "cityEN": "Budapest",
+    "ballparkHU": "Budapest (Edzőpálya / Megosztott)",
+    "ballparkEN": "Budapest (Training / Shared)",
+    "coords": [
+      47.4979,
+      19.0702
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/BudapestRebels",
+      "instagram": "https://www.instagram.com/budapestrebels_baseball"
+    }
+  },
+  {
+    "id": "debrecen-tigers",
+    "name": "Debrecen Tigers",
+    "league": "nbii",
+    "tierLabelHU": "NB II / Kelet-Magyarország",
+    "tierLabelEN": "NB II / Eastern Hungary",
+    "cityHU": "Debrecen",
+    "cityEN": "Debrecen",
+    "ballparkHU": "Debrecen Tigers Field (Bánki Donát u.)",
+    "ballparkEN": "Debrecen Tigers Field (Bánki Donát u.)",
+    "coords": [
+      47.5458,
+      21.6582
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/debrecentigers",
+      "instagram": "https://www.instagram.com/debrecentigers"
+    }
+  },
+  {
+    "id": "hungarian-astros",
+    "name": "Hungarian Astros",
+    "league": "nbii",
+    "tierLabelHU": "NB II & Lassúlabdás Softball",
+    "tierLabelEN": "NB II & Slowpitch Softball",
+    "cityHU": "Budapest (Városliget)",
+    "cityEN": "Budapest (City Park)",
+    "ballparkHU": "Városliget Sportpark / Megosztott",
+    "ballparkEN": "City Park Sportpark / Shared",
+    "coords": [
+      47.514,
+      19.082
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/HungarianAstros"
+    }
+  },
+  {
+    "id": "nagykanizsa-ants",
+    "name": "Nagykanizsa Ants",
+    "league": "nbii",
+    "tierLabelHU": "NB II & Nyugati Regionális Bázis",
+    "tierLabelEN": "NB II & Western Regional Base",
+    "cityHU": "Nagykanizsa",
+    "cityEN": "Nagykanizsa",
+    "ballparkHU": "Olajbányász Sportcentrum (Nagyváthy u.)",
+    "ballparkEN": "Olajbányász Sportcentrum (Nagyváthy u.)",
+    "coords": [
+      46.458,
+      16.9855
+    ],
+    "socials": {
+      "facebook": "https://www.facebook.com/hangyaknagykanizsa"
+    }
+  }
+]

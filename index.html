@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Magyar Baseball és Softball Pályák | Hungarian Baseball & Softball Map</title>
+  
+  <meta name="description" content="Interaktív térkép a magyarországi baseball és softball klubokról és pályákról. Hivatalos koordináták, navigáció és klubinformációk.">
+  <meta property="og:title" content="Magyar Baseball és Softball Pályák Térképe">
+  <meta property="og:description" content="Fedezd fel a magyar baseball és softball csapatokat és pályákat!">
+  <meta property="og:type" content="website">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #1e40af;
+      --primary-hover: #1d4ed8;
+      --accent: #dc2626;
+      --bg-panel: rgba(255, 255, 255, 0.96);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --sidebar-width: 380px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0f172a; }
+    #app-container { display: flex; width: 100vw; height: 100vh; position: relative; }
+
+    #sidebar {
+      width: var(--sidebar-width); height: 100%; background: var(--bg-panel); backdrop-filter: blur(12px);
+      border-right: 1px solid var(--border-color); display: flex; flex-direction: column;
+      z-index: 1000; transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.08);
+    }
+    .sidebar-header { padding: 16px 16px 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px; background: #ffffff; }
+    .brand-row { display: flex; justify-content: space-between; align-items: center; }
+    .brand-title { font-size: 16px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; }
+
+    .lang-switcher { display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 20px; border: 1px solid var(--border-color); }
+    .lang-btn { border: none; background: transparent; padding: 4px 10px; border-radius: 16px; font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s ease; }
+    .lang-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 1px 3px rgba(30, 64, 175, 0.3); }
+
+    .search-box { position: relative; display: flex; align-items: center; }
+    .search-input { width: 100%; padding: 9px 32px 9px 34px; border-radius: 10px; border: 1px solid var(--border-color); background: #f8fafc; font-size: 13.5px; color: var(--text-main); outline: none; transition: all 0.2s; }
+    .search-input:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.12); }
+    .search-icon { position: absolute; left: 10px; width: 16px; height: 16px; stroke: var(--text-muted); stroke-width: 2; fill: none; pointer-events: none; }
+    .search-clear { position: absolute; right: 8px; width: 20px; height: 20px; border: none; background: #e2e8f0; color: #475569; border-radius: 50%; font-size: 12px; display: none; align-items: center; justify-content: center; cursor: pointer; line-height: 1; }
+    .search-clear:hover { background: #cbd5e1; color: #0f172a; }
+
+    .filter-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+    .filter-chips::-webkit-scrollbar { display: none; }
+    .chip-btn { border: 1px solid var(--border-color); background: #fff; color: #475569; font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 20px; cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
+    .chip-btn:hover { background: #f8fafc; }
+    .chip-btn.active { background: var(--primary); color: #ffffff; border-color: var(--primary); }
+
+    .list-controls { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #f8fafc; border-bottom: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted); }
+    .sort-select { font-size: 12px; border: 1px solid var(--border-color); background: #ffffff; padding: 3px 6px; border-radius: 6px; color: var(--text-main); outline: none; cursor: pointer; }
+    .btn-find-nearest { background: #eff6ff; color: var(--primary); border: 1px solid #bfdbfe; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; transition: all 0.15s ease; }
+    .btn-find-nearest:hover { background: #dbeafe; }
+
+    .team-list { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+    .empty-state { padding: 32px 16px; text-align: center; color: var(--text-muted); font-size: 13px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .empty-state span { font-size: 28px; }
+
+    .team-card { background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 14px; cursor: pointer; transition: all 0.2s ease; display: flex; flex-direction: column; gap: 6px; position: relative; }
+    .team-card:hover { border-color: #93c5fd; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 64, 175, 0.06); }
+    .team-card.selected { border-color: var(--primary); background: #f0f7ff; box-shadow: 0 0 0 2px rgba(30, 64, 175, 0.2); }
+
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; }
+    .badge-league { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 4px; display: inline-block; text-transform: uppercase; letter-spacing: 0.3px; }
+    .badge-nbi { background: #fee2e2; color: #b91c1c; }
+    .badge-nbii { background: #fef3c7; color: #b45309; }
+    .team-name { font-size: 14.5px; font-weight: 700; color: var(--text-main); line-height: 1.3; }
+    .team-meta { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 3px; }
+    .meta-line { display: flex; align-items: center; gap: 5px; }
+    .distance-tag { font-size: 11px; font-weight: 600; color: #047857; background: #d1fae5; padding: 1px 6px; border-radius: 4px; display: inline-flex; align-items: center; gap: 3px; width: fit-content; }
+
+    .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; padding-top: 8px; border-top: 1px solid #f1f5f9; }
+    .social-links-group { display: flex; gap: 6px; align-items: center; }
+    .social-icon-btn { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; background: #f1f5f9; color: #475569; text-decoration: none; transition: all 0.2s ease; font-size: 13px; }
+    .social-icon-btn:hover { background: #e2e8f0; transform: translateY(-1px); }
+    .social-icon-btn svg { width: 14px; height: 14px; fill: currentColor; }
+    .web-icon:hover { color: var(--primary); background: #dbeafe; }
+    .fb-icon:hover { color: #1877F2; background: #e7f0fd; }
+    .ig-icon:hover { color: #E1306C; background: #fce7ef; }
+
+    .btn-gmaps-nav { background: #2563eb; color: #ffffff !important; text-decoration: none; padding: 5px 9px; border-radius: 6px; font-size: 11.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: background 0.15s ease; box-shadow: 0 1px 3px rgba(37, 99, 235, 0.25); }
+    .btn-gmaps-nav:hover { background: #1d4ed8; }
+    .gmaps-pin-icon { width: 12px; height: 12px; fill: currentColor; }
+
+    .sidebar-footer { padding: 10px 16px; border-top: 1px solid var(--border-color); background: #ffffff; font-size: 11.5px; color: var(--text-muted); display: flex; justify-content: space-between; align-items: center; }
+    .info-link-btn { background: none; border: none; color: var(--primary); cursor: pointer; font-size: 11.5px; display: flex; align-items: center; gap: 4px; font-weight: 500; padding: 0; }
+    .info-link-btn:hover { text-decoration: underline; }
+
+    #map { flex: 1; height: 100%; background: #e2e8f0; position: relative; }
+    .map-controls-island { position: absolute; bottom: 24px; right: 20px; z-index: 900; display: flex; flex-direction: column; gap: 6px; background: #ffffff; border-radius: 10px; padding: 3px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15); border: 1px solid rgba(0, 0, 0, 0.08); }
+    .map-ctrl-btn { width: 34px; height: 34px; background: #ffffff; border: none; border-radius: 7px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #334155; transition: all 0.15s; }
+    .map-ctrl-btn:hover { background: #f1f5f9; color: var(--primary); }
+    .map-ctrl-btn svg { width: 17px; height: 17px; stroke-width: 2.2; }
+
+    #mobile-toggle-btn { display: none; position: absolute; top: 14px; left: 14px; z-index: 1050; background: #ffffff; border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 14px; font-size: 13px; font-weight: 700; color: var(--text-main); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); cursor: pointer; align-items: center; gap: 6px; }
+    #mobile-backdrop { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.4); z-index: 950; backdrop-filter: blur(2px); }
+    #mobile-backdrop.show { display: block; }
+
+    .modal-backdrop { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(4px); z-index: 2000; justify-content: center; align-items: center; padding: 16px; }
+    .modal-backdrop.show { display: flex; }
+    .modal-card { background: #ffffff; border-radius: 16px; max-width: 480px; width: 100%; padding: 22px 24px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; gap: 14px; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--text-main); }
+    .modal-close-btn { background: #f1f5f9; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+    .modal-content { font-size: 13px; color: #334155; line-height: 1.6; display: flex; flex-direction: column; gap: 12px; }
+    .source-item { background: #f8fafc; padding: 10px 12px; border-radius: 8px; border-left: 3px solid var(--primary); }
+
+    /* Custom Leaflet Marker & Popup Styling */
+    .baseball-pin { background: #ffffff; border: 2.5px solid var(--primary); border-radius: 50%; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25); display: flex; align-items: center; justify-content: center; font-size: 15px; transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .baseball-pin:hover { transform: scale(1.18); border-color: var(--accent); z-index: 1000 !important; }
+    .baseball-pin.selected { background: var(--primary); border-color: #ffffff; box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.45); transform: scale(1.22); }
+
+    .user-gps-dot { width: 16px; height: 16px; background: #10b981; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.35); }
+
+    .leaflet-popup-content-wrapper { border-radius: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.16); padding: 2px; }
+    .leaflet-popup-content { margin: 10px 12px; font-family: 'Inter', sans-serif; min-width: 210px; }
+    .popup-title { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 3px; }
+    .popup-sub { font-size: 11.5px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.35; }
+    .popup-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 6px; border-top: 1px solid #f1f5f9; }
+
+    @media (max-width: 768px) {
+      #sidebar { position: absolute; top: 0; left: 0; width: 88%; max-width: 360px; transform: translateX(-100%); z-index: 1100; }
+      #sidebar.open { transform: translateX(0); }
+      #mobile-toggle-btn { display: flex; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="app-container">
+  <button id="mobile-toggle-btn" aria-label="Toggle list"><span>📋</span><span id="mobileToggleText">9 Csapat</span></button>
+  <div id="mobile-backdrop"></div>
+
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-row">
+        <div class="brand-title"><span>⚾</span><span id="txtAppTitle">Magyar Baseball Pályák</span></div>
+        <div class="lang-switcher">
+          <button id="btnLangHU" class="lang-btn active">🇭🇺 HU</button>
+          <button id="btnLangEN" class="lang-btn">🇬🇧 EN</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" id="searchInput" class="search-input" placeholder="Keresés csapat, város vagy pálya szerint...">
+        <button id="btnClearSearch" class="search-clear" title="Törlés / Clear">&times;</button>
+      </div>
+      <div class="filter-chips">
+        <button class="chip-btn active" data-filter="all" id="chipAll">Összes (9)</button>
+        <button class="chip-btn" data-filter="nbi" id="chipNBI">NB I (6)</button>
+        <button class="chip-btn" data-filter="nbii" id="chipNBII">NB II & Softball (3)</button>
+      </div>
+    </div>
+    <div class="list-controls">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span id="teamCountText">9 csapat</span>
+        <select id="sortSelect" class="sort-select" title="Rendezés / Sort">
+          <option value="league" id="optSortLeague">Alapértelmezett (Liga)</option>
+          <option value="name" id="optSortName">Név szerint (A-Z)</option>
+          <option value="city" id="optSortCity">Város szerint (A-Z)</option>
+          <option value="dist" id="optSortDist" disabled>Távolság szerint</option>
+        </select>
+      </div>
+      <button id="btnFindNearest" class="btn-find-nearest" title="GPS Pozíció alapján">
+        <span>📍</span><span id="txtBtnNearest">Közelben</span>
+      </button>
+    </div>
+    <div class="team-list" id="teamListContainer"></div>
+    <div class="sidebar-footer">
+      <button id="btnOpenInfoModal" class="info-link-btn"><span>ℹ️</span><span id="txtBtnSources">Források és Információk</span></button>
+      <span>MOBSSZ / Esri</span>
+    </div>
+  </aside>
+
+  <div id="map"></div>
+
+  <div class="map-controls-island">
+    <button id="btnFitBounds" class="map-ctrl-btn" title="Teljes Magyarország nézet visszaállítása / Reset View" aria-label="Reset View">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button id="btnZoomIn" class="map-ctrl-btn" title="Nagyítás / Zoom In" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19" stroke-linecap="round"></line><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"></line></svg>
+    </button>
+    <button id="btnZoomOut" class="map-ctrl-btn" title="Kicsinyítés / Zoom Out" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="5" y1="12" x2="19" y2="12" stroke-linecap="round"></line></svg>
+    </button>
+  </div>
+</div>
+
+<!-- Modal: Sources & Disclaimer -->
+<div id="infoModal" class="modal-backdrop">
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modalTitle">Adathasználat és Források</h3>
+      <button id="btnCloseModal" class="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-content">
+      <div class="source-item">
+        <strong id="modalSec1Title">⚾ Hivatalos Klub- és Versenyinformációk:</strong>
+        <p id="modalSec1Text">A térképen szereplő adatok a Magyar Országos Baseball és Softball Szövetség (MOBSSZ) nyilvántartása, valamint a klubok hivatalos felületei alapján kerültek összegyűjtésre és ellenőrzésre.</p>
+      </div>
+      <div class="source-item">
+        <strong id="modalSec2Title">🗺️ Térképi Forrás:</strong>
+        <p id="modalSec2Text">Alaptérkép: Esri World Street Map (Powered by Esri, HERE, Garmin, © OpenStreetMap közreműködők).</p>
+      </div>
+      <div class="source-item">
+        <strong id="modalSec3Title">📌 Pontosság és Megjegyzés:</strong>
+        <p id="modalSec3Text">A GPS koordináták közvetlenül a létesítmények és pályák bejáratához vannak igazítva. Mielőtt meccsre vagy edzésre indulnál, mindig ellenőrizd az időpontokat a csapatok oldalain!</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+    /* 1. CLUBS DATASET (DYNAMICALLY LOADED FROM TEAMS.JSON) */
+  let HUNGARY_TEAMS = [];
+
+  async function loadClubsData() {
+    try {
+      const response = await fetch('./teams.json');
+      if (!response.ok) throw new Error('Network response was not ok');
+      HUNGARY_TEAMS = await response.json();
+      setupMarkers();
+      updateI18nText();
+      renderTeamList();
+    } catch (err) {
+      console.error('Failed to load teams.json:', err);
+      document.getElementById('teamListContainer').innerHTML = `
+        <div class="empty-state">
+          <span>⚠️</span>
+          <div>Nem sikerült betölteni a csapatok adatait (teams.json).<br>Failed to load teams data.</div>
+        </div>
+      `;
+    }
+  }
+
+  /* 2. CORRECTED STABLE BORDER MASK */
+  const WORLD_MASK = [
+    [90, -360], [90, 360], [-90, 360], [-90, -360], [90, -360]
+  ];
+  
+  const HUNGARY_BORDER = [
+    [48.01, 17.15], [47.95, 17.45], [47.80, 17.75], [47.78, 18.15], [47.75, 18.75],
+    [48.05, 18.85], [48.15, 19.30], [48.18, 19.85], [48.25, 20.25], [48.55, 20.60],
+    [48.50, 21.40], [48.40, 21.70], [48.40, 22.15], [48.15, 22.85], [47.95, 22.90],
+    [47.70, 22.35], [47.55, 21.90], [47.10, 21.80], [46.90, 21.55], [46.55, 21.35],
+    [46.30, 21.20], [46.15, 20.60], [46.18, 20.00], [46.18, 19.50], [45.98, 18.85],
+    [45.85, 18.45], [45.85, 18.00], [46.15, 17.40], [46.35, 17.00], [46.45, 16.65],
+    [46.85, 16.30], [47.20, 16.45], [47.45, 16.55], [47.70, 16.60], [47.95, 17.10],
+    [48.01, 17.15]
+  ];
+
+  /* 3. APP STATE & I18N */
+  let currentLang = localStorage.getItem('hun_baseball_lang') || 'hu';
+  let activeFilter = 'all';
+  let searchQuery = '';
+  let sortBy = 'league';
+  let selectedTeamId = null;
+  let userLocation = null;
+  let userMarker = null;
+  const markersMap = new Map();
+
+  const i18n = {
+    hu: {
+      appTitle: "Magyar Baseball Pályák", searchPlaceholder: "Keresés csapat, város vagy pálya szerint...",
+      filterAll: "Összes", filterNBI: "NB I Bajnokság", filterNBII: "NB II & Softball", teamsFound: "csapat",
+      sortLeague: "Alapértelmezett (Liga)", sortName: "Név szerint (A-Z)", sortCity: "Város szerint (A-Z)", sortDist: "Távolság szerint",
+      btnNearest: "Közelben", distancePrefix: "tőled", navBtnText: "Google Maps", navTooltip: "Megnyitás és útvonaltervezés a Google Térképen (új lapon)",
+      sourcesBtn: "Források és Információk", modalTitle: "Adathasználat és Források",
+      modalSec1Title: "⚾ Hivatalos Klub- és Versenyinformációk:", modalSec1Text: "A térképen szereplő adatok a Magyar Országos Baseball és Softball Szövetség (MOBSSZ) nyilvántartása, valamint a klubok hivatalos felületei alapján kerültek összegyűjtésre és ellenőrzésre.",
+      modalSec2Title: "🗺️ Térképi Forrás:", modalSec2Text: "Alaptérkép: Esri World Street Map (Powered by Esri, HERE, Garmin, © OpenStreetMap közreműködők).",
+      modalSec3Title: "📌 Pontosság és Megjegyzés:", modalSec3Text: "A GPS koordináták közvetlenül a létesítmények és pályák bejáratához vannak igazítva. Mielőtt meccsre vagy edzésre indulnál, mindig ellenőrizd az időpontokat a csapatok oldalain!",
+      resetTooltip: "Teljes Magyarország nézet visszaállítása",
+      emptyState: "Nincs a keresésnek megfelelő csapat."
+    },
+    en: {
+      appTitle: "Hungary Baseball Map", searchPlaceholder: "Search by team, city or ballpark...",
+      filterAll: "All Teams", filterNBI: "NB I League", filterNBII: "NB II & Softball", teamsFound: "teams",
+      sortLeague: "Default (League)", sortName: "By Name (A-Z)", sortCity: "By City (A-Z)", sortDist: "By Distance",
+      btnNearest: "Nearby", distancePrefix: "from you", navBtnText: "Google Maps", navTooltip: "Open and navigate in Google Maps (opens in new tab)",
+      sourcesBtn: "Sources & Disclaimer", modalTitle: "Data Sources & Information",
+      modalSec1Title: "⚾ Official Club & League Information:", modalSec1Text: "Data is gathered and verified from the Hungarian Baseball and Softball Federation (MOBSSZ) records and official club portals.",
+      modalSec2Title: "🗺️ Map Attribution:", modalSec2Text: "Base map: Esri World Street Map (Powered by Esri, HERE, Garmin, © OpenStreetMap contributors).",
+      modalSec3Title: "📌 Precision & Advice:", modalSec3Text: "Coordinates are aligned with field entrances and home plates. Always check current game schedules directly with clubs before visiting.",
+      resetTooltip: "Reset to full Hungary view",
+      emptyState: "No clubs match your search criteria."
+    }
+  };
+
+  /* 4. ACCENT-INSENSITIVE NORMALIZATION & HELPERS */
+  function normalizeStr(str) {
+    return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  }
+
+  function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+  }
+
+  function buildSocialButtonsHtml(socials) {
+    if (!socials) return '';
+    let html = '';
+    if (socials.website) {
+      html += `<a href="${socials.website}" target="_blank" rel="noopener noreferrer" class="social-icon-btn web-icon" title="Website"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg></a>`;
+    }
+    if (socials.facebook) {
+      html += `<a href="${socials.facebook}" target="_blank" rel="noopener noreferrer" class="social-icon-btn fb-icon" title="Facebook"><svg viewBox="0 0 24 24"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z"/></svg></a>`;
+    }
+    if (socials.instagram) {
+      html += `<a href="${socials.instagram}" target="_blank" rel="noopener noreferrer" class="social-icon-btn ig-icon" title="Instagram"><svg viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg></a>`;
+    }
+    return html;
+  }
+
+  /* 5. MAP INITIALIZATION */
+  const defaultCenter = [47.1625, 19.5033];
+  const defaultZoom = 7.5;
+  const map = L.map('map', { zoomControl: false, attributionControl: false }).setView(defaultCenter, defaultZoom);
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  }).addTo(map);
+
+  L.polygon([WORLD_MASK, HUNGARY_BORDER], {
+    fillColor: '#0f172a',
+    fillOpacity: 0.22,
+    stroke: false,
+    interactive: false
+  }).addTo(map);
+
+  /* 6. DATA PROCESSING & SORTING (FIXED SCOPE BUG) */
+  function getProcessedTeams() {
+    let teams = HUNGARY_TEAMS.map(team => {
+      let dist = null;
+      if (userLocation) {
+        dist = calculateDistance(userLocation.lat, userLocation.lng, team.coords[0], team.coords[1]);
+      }
+      return { ...team, distance: dist };
+    });
+
+    if (activeFilter !== 'all') {
+      teams = teams.filter(t => t.league === activeFilter);
+    }
+
+    if (searchQuery.trim() !== '') {
+      const q = normalizeStr(searchQuery.trim());
+      teams = teams.filter(t =>
+        normalizeStr(t.name).includes(q) ||
+        normalizeStr(t.cityHU).includes(q) ||
+        normalizeStr(t.cityEN).includes(q) ||
+        normalizeStr(t.ballparkHU).includes(q) ||
+        normalizeStr(t.ballparkEN).includes(q)
+      );
+    }
+
+    const collator = new Intl.Collator(currentLang === 'hu' ? 'hu' : 'en', { sensitivity: 'base' });
+
+    if (sortBy === 'name') {
+      teams.sort((a, b) => collator.compare(a.name, b.name));
+    } else if (sortBy === 'city') {
+      teams.sort((a, b) => {
+        const cityA = currentLang === 'hu' ? a.cityHU : a.cityEN;
+        const cityB = currentLang === 'hu' ? b.cityHU : b.cityEN;
+        return collator.compare(cityA, cityB) || collator.compare(a.name, b.name);
+      });
+    } else if (sortBy === 'dist' && userLocation) {
+      teams.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    }
+
+    return teams;
+  }
+
+  /* 7. UI & POPUP RENDERING */
+  function getPopupContent(team) {
+    const t = i18n[currentLang];
+    const city = currentLang === 'hu' ? team.cityHU : team.cityEN;
+    const ballpark = currentLang === 'hu' ? team.ballparkHU : team.ballparkEN;
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${team.coords[0]},${team.coords[1]}`;
+    const socialBtns = buildSocialButtonsHtml(team.socials);
+
+    return `
+      <div>
+        <div class="popup-title">⚾ ${team.name}</div>
+        <div class="popup-sub">📍 ${city}<br>🏟️ ${ballpark}</div>
+        <div class="popup-footer">
+          <div class="social-links-group">${socialBtns}</div>
+          <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-gmaps-nav" title="${t.navTooltip}">
+            <span>${t.navBtnText} ↗</span>
+          </a>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateI18nText() {
+    const t = i18n[currentLang];
+    const nbiCount = HUNGARY_TEAMS.filter(x => x.league === 'nbi').length;
+    const nbiiCount = HUNGARY_TEAMS.filter(x => x.league === 'nbii').length;
+
+    document.getElementById('txtAppTitle').innerText = t.appTitle;
+    document.getElementById('searchInput').placeholder = t.searchPlaceholder;
+    document.getElementById('chipAll').innerText = `${t.filterAll} (${HUNGARY_TEAMS.length})`;
+    document.getElementById('chipNBI').innerText = `${t.filterNBI} (${nbiCount})`;
+    document.getElementById('chipNBII').innerText = `${t.filterNBII} (${nbiiCount})`;
+    document.getElementById('optSortLeague').innerText = t.sortLeague;
+    document.getElementById('optSortName').innerText = t.sortName;
+    document.getElementById('optSortCity').innerText = t.sortCity;
+    document.getElementById('optSortDist').innerText = t.sortDist;
+    document.getElementById('txtBtnNearest').innerText = t.btnNearest;
+    document.getElementById('txtBtnSources').innerText = t.sourcesBtn;
+    document.getElementById('modalTitle').innerText = t.modalTitle;
+    document.getElementById('modalSec1Title').innerText = t.modalSec1Title;
+    document.getElementById('modalSec1Text').innerText = t.modalSec1Text;
+    document.getElementById('modalSec2Title').innerText = t.modalSec2Title;
+    document.getElementById('modalSec2Text').innerText = t.modalSec2Text;
+    document.getElementById('modalSec3Title').innerText = t.modalSec3Title;
+    document.getElementById('modalSec3Text').innerText = t.modalSec3Text;
+    document.getElementById('btnFitBounds').title = t.resetTooltip;
+
+    if (currentLang === 'hu') {
+      document.getElementById('btnLangHU').classList.add('active');
+      document.getElementById('btnLangEN').classList.remove('active');
+    } else {
+      document.getElementById('btnLangEN').classList.add('active');
+      document.getElementById('btnLangHU').classList.remove('active');
+    }
+
+    // Refresh marker popups in current language
+    HUNGARY_TEAMS.forEach(team => {
+      const marker = markersMap.get(team.id);
+      if (marker) marker.setPopupContent(getPopupContent(team));
+    });
+  }
+
+  function renderTeamList() {
+    const container = document.getElementById('teamListContainer');
+    container.innerHTML = '';
+    const teams = getProcessedTeams();
+    const t = i18n[currentLang];
+
+    document.getElementById('teamCountText').innerText = `${teams.length} ${t.teamsFound}`;
+    document.getElementById('mobileToggleText').innerText = `${teams.length} ${t.teamsFound}`;
+
+    if (teams.length === 0) {
+      container.innerHTML = `<div class="empty-state"><span>🔍</span><div>${t.emptyState}</div></div>`;
+      return;
+    }
+
+    teams.forEach(team => {
+      const card = document.createElement('div');
+      card.className = `team-card ${selectedTeamId === team.id ? 'selected' : ''}`;
+      card.id = `card-${team.id}`;
+
+      const tierLabel = currentLang === 'hu' ? team.tierLabelHU : team.tierLabelEN;
+      const city = currentLang === 'hu' ? team.cityHU : team.cityEN;
+      const ballpark = currentLang === 'hu' ? team.ballparkHU : team.ballparkEN;
+      const badgeClass = team.league === 'nbi' ? 'badge-nbi' : 'badge-nbii';
+      const distanceBadge = team.distance !== null ? `<div class="distance-tag">📍 ~${team.distance.toFixed(1)} km ${t.distancePrefix}</div>` : '';
+      const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${team.coords[0]},${team.coords[1]}`;
+      const socialBtns = buildSocialButtonsHtml(team.socials);
+
+      card.innerHTML = `
+        <div class="card-top"><span class="badge-league ${badgeClass}">${tierLabel}</span>${distanceBadge}</div>
+        <div class="team-name">${team.name}</div>
+        <div class="team-meta">
+          <div class="meta-line">📍 <span>${city}</span></div>
+          <div class="meta-line">🏟️ <span>${ballpark}</span></div>
+        </div>
+        <div class="card-actions">
+          <div class="social-links-group">${socialBtns}</div>
+          <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-gmaps-nav" title="${t.navTooltip}">
+            <svg class="gmaps-pin-icon" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            <span>${t.navBtnText} ↗</span>
+          </a>
+        </div>`;
+
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('a')) return;
+        selectTeam(team.id, true);
+      });
+      container.appendChild(card);
+    });
+  }
+
+  function setupMarkers() {
+    HUNGARY_TEAMS.forEach(team => {
+      const icon = L.divIcon({
+        className: 'custom-pin-wrapper',
+        html: `<div class="baseball-pin" id="marker-${team.id}" style="width:34px; height:34px;">⚾</div>`,
+        iconSize: [34, 34],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -18]
+      });
+      const marker = L.marker(team.coords, { icon: icon }).addTo(map);
+      marker.bindPopup(getPopupContent(team), { closeButton: false });
+      marker.on('click', () => selectTeam(team.id, true));
+      markersMap.set(team.id, marker);
+    });
+  }
+
+  function updateMarkerVisibility() {
+    const teams = getProcessedTeams();
+    const visibleIds = new Set(teams.map(t => t.id));
+    HUNGARY_TEAMS.forEach(team => {
+      const marker = markersMap.get(team.id);
+      if (visibleIds.has(team.id)) {
+        if (!map.hasLayer(marker)) marker.addTo(map);
+      } else {
+        if (map.hasLayer(marker)) map.removeLayer(marker);
+      }
+    });
+  }
+
+  function toggleMobileDrawer(open) {
+    const sb = document.getElementById('sidebar');
+    const bd = document.getElementById('mobile-backdrop');
+    if (open) {
+      sb.classList.add('open');
+      bd.classList.add('show');
+    } else {
+      sb.classList.remove('open');
+      bd.classList.remove('show');
+    }
+  }
+
+  function selectTeam(teamId, flyToCoord = false) {
+    selectedTeamId = teamId;
+    HUNGARY_TEAMS.forEach(team => {
+      const el = document.getElementById(`marker-${team.id}`);
+      if (el) {
+        if (team.id === teamId) el.classList.add('selected');
+        else el.classList.remove('selected');
+      }
+    });
+
+    document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+    const selectedCard = document.getElementById(`card-${teamId}`);
+    if (selectedCard) {
+      selectedCard.classList.add('selected');
+      selectedCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    const team = HUNGARY_TEAMS.find(t => t.id === teamId);
+    const marker = markersMap.get(teamId);
+    if (team && flyToCoord) {
+      map.flyTo(team.coords, 14, { duration: 1.1 });
+      if (marker) marker.openPopup();
+      if (window.innerWidth <= 768) toggleMobileDrawer(false);
+    }
+  }
+
+  /* 8. EVENT LISTENERS */
+  document.getElementById('btnLangHU').addEventListener('click', () => {
+    currentLang = 'hu';
+    localStorage.setItem('hun_baseball_lang', 'hu');
+    updateI18nText();
+    renderTeamList();
+  });
+  document.getElementById('btnLangEN').addEventListener('click', () => {
+    currentLang = 'en';
+    localStorage.setItem('hun_baseball_lang', 'en');
+    updateI18nText();
+    renderTeamList();
+  });
+
+  const searchInputEl = document.getElementById('searchInput');
+  const btnClearSearch = document.getElementById('btnClearSearch');
+
+  searchInputEl.addEventListener('input', (e) => {
+    searchQuery = e.target.value;
+    btnClearSearch.style.display = searchQuery.length > 0 ? 'flex' : 'none';
+    renderTeamList();
+    updateMarkerVisibility();
+  });
+
+  btnClearSearch.addEventListener('click', () => {
+    searchInputEl.value = '';
+    searchQuery = '';
+    btnClearSearch.style.display = 'none';
+    renderTeamList();
+    updateMarkerVisibility();
+  });
+
+  document.querySelectorAll('.chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderTeamList();
+      updateMarkerVisibility();
+    });
+  });
+
+  document.getElementById('sortSelect').addEventListener('change', (e) => {
+    sortBy = e.target.value;
+    renderTeamList();
+  });
+
+  document.getElementById('btnFindNearest').addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation not supported.");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.marker([userLocation.lat, userLocation.lng], {
+          icon: L.divIcon({ className: '', html: '<div class="user-gps-dot" title="GPS"></div>', iconSize: [16, 16], iconAnchor: [8, 8] })
+        }).addTo(map);
+
+        document.getElementById('optSortDist').removeAttribute('disabled');
+        document.getElementById('sortSelect').value = 'dist';
+        sortBy = 'dist';
+        renderTeamList();
+        const processed = getProcessedTeams();
+        if (processed.length > 0) selectTeam(processed[0].id, true);
+      },
+      () => {
+        alert("GPS hozzáférés nem engedélyezett / GPS location access denied.");
+      }
+    );
+  });
+
+  document.getElementById('btnZoomIn').addEventListener('click', () => map.zoomIn());
+  document.getElementById('btnZoomOut').addEventListener('click', () => map.zoomOut());
+  document.getElementById('btnFitBounds').addEventListener('click', () => {
+    selectedTeamId = null;
+    map.closePopup();
+    HUNGARY_TEAMS.forEach(team => {
+      const el = document.getElementById(`marker-${team.id}`);
+      if (el) el.classList.remove('selected');
+    });
+    document.querySelectorAll('.team-card').forEach(c => c.classList.remove('selected'));
+    map.flyTo(defaultCenter, defaultZoom, { duration: 1.0 });
+  });
+
+  document.getElementById('mobile-toggle-btn').addEventListener('click', () => {
+    const isOpen = document.getElementById('sidebar').classList.contains('open');
+    toggleMobileDrawer(!isOpen);
+  });
+  document.getElementById('mobile-backdrop').addEventListener('click', () => toggleMobileDrawer(false));
+
+  const modal = document.getElementById('infoModal');
+  document.getElementById('btnOpenInfoModal').addEventListener('click', () => modal.classList.add('show'));
+  document.getElementById('btnCloseModal').addEventListener('click', () => modal.classList.remove('show'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+
+  /* 9. INIT (LOAD DATA & RENDER) */
+  loadClubsData();
+</script>
+</body>
+</html>
